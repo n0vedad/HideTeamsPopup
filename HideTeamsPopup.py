@@ -63,40 +63,50 @@ class TeamsPopupHandler:
             logging.exception(f"Exception occurred while processing window with handle {hwnd}: {e}")
             return True
 
-    # Method to check if a window is a Teams popup during a meeting (legacy Teams and new version)
-    def is_window_teams_popup(self, hWindow):
-        try:
-            if not (self.IsWindow(hWindow) and self.IsWindowVisible(hWindow)):
-                return False
-
-            windowTitle = (ctypes.c_char * Constants.STRING_LENGTH)()
-            self.GetWindowTextA(hWindow, windowTitle, Constants.STRING_LENGTH)
-
-            if not windowTitle.value:
-                return False
-            
-            className = (ctypes.c_char * Constants.STRING_LENGTH)()
-            self.GetClassNameA(hWindow, className, Constants.STRING_LENGTH)
-
-            styles = self.GetWindowLongA(hWindow, Constants.GWL_STYLE)
-            exStyles = self.GetWindowLongA(hWindow, Constants.GWL_EXSTYLE)
-
-            rect = ctypes.wintypes.RECT()
-            self.GetWindowRect(hWindow, ctypes.byref(rect))
-
-            if (styles == 0 or exStyles == 0):
-                return False
-
-            isMainWindow = (styles & Constants.WS_THICKFRAME) and (styles & Constants.WS_MAXIMIZEBOX)
-            isMinimized = rect.left <= -32000 and rect.top <= -32000
-            isNewPopup = (exStyles == 0x108) and not isMinimized and (rect.left >= 0 and rect.top >= 0)
-            isOldPopup = ((not isMainWindow) and (className.value == Constants.CLASS_NAME))
-
-            return isOldPopup or isNewPopup
-    
-        except Exception as e:
-            logging.exception(f"Exception in is_window_teams_popup: {e}")
+# Method to check if a window is a Teams popup (either legacy or new version)
+# This method includes checks to immediately exclude certain cases by returning False
+def is_window_teams_popup(self, hWindow):
+    try:
+        # Verify the window exists and is visible
+        if not (self.IsWindow(hWindow) and self.IsWindowVisible(hWindow)):
             return False
+
+        # Get the window title
+        windowTitle = (ctypes.c_char * Constants.STRING_LENGTH)()
+        self.GetWindowTextA(hWindow, windowTitle, Constants.STRING_LENGTH)
+        if not windowTitle.value:
+            return False
+
+        # Get the class name of the window
+        className = (ctypes.c_char * Constants.STRING_LENGTH)()
+        self.GetClassNameA(hWindow, className, Constants.STRING_LENGTH)
+
+        # Get window styles and extended styles
+        styles = self.GetWindowLongA(hWindow, Constants.GWL_STYLE)
+        exStyles = self.GetWindowLongA(hWindow, Constants.GWL_EXSTYLE)
+        if styles == 0 or exStyles == 0:
+            return False
+
+        # Get the window's position and size
+        rect = ctypes.wintypes.RECT()
+        self.GetWindowRect(hWindow, ctypes.byref(rect))
+
+        # Determine if it is a main window or minimized window
+        isMainWindow = (styles & Constants.WS_THICKFRAME) and (styles & Constants.WS_MAXIMIZEBOX)
+        isMinimized = rect.left <= -32000 and rect.top <= -32000
+
+        # Check if it is a new popup (new Teams version)
+        isNewPopup = (exStyles == 0x108) and not isMinimized and (rect.left >= 0 and rect.top >= 0)
+
+        # Check if it is an old popup (legacy Teams version)
+        isOldPopup = ((not isMainWindow) and (className.value == Constants.CLASS_NAME))
+
+        return isOldPopup or isNewPopup
+
+    except Exception as e:
+        logging.exception(f"Exception in is_window_teams_popup: {e}")
+        return False
+
 
     # Loop function to continuously check for Teams popups and hide them.
     # This function will be invoked for each open window, allowing us to inspect or perform actions on them.
