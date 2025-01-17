@@ -1,13 +1,14 @@
 # HideTeamsPopup
 
-This little Python script I did made because I'm very disgusted from this little popup which pops out every time I minimize a meeting in Microsoft Teams ©. This supports both versions, new and classic.
+This little Python script I did made because I'm very disgusted from this little popup which pops out every time I minimize a meeting in Microsoft Teams ©. This only supports new version because classic is deprecated.
 
 ## Getting started
 
 ### Prerequisites
 
-- Python (v3.12.x)
-- pip (v24.x)
+- Microsoft Windows © (only tested on 10 and higher)
+- Python (v3.12.x and higher)
+- pip (v24.x and higher)
 
 ### Installation
 
