@@ -25,15 +25,9 @@ EnumWindowsProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPAR
 # Define a Class for some Constants that are needed throughout the application
 class Constants:
     # Windows message constants for window manipulation
-    GWL_STYLE = -16
-    WS_THICKFRAME = 0x00040000
-    WS_MAXIMIZEBOX = 0x00010000
-    STRING_LENGTH = 100
-    CLASS_NAME = b"Chrome_WidgetWin_1"
-    CHILD_TITLE = b"Chrome Legacy Window"
     SW_HIDE = 0
     GWL_EXSTYLE = -20
-    POPUP_STYLE = 0x108  # Expected style for Teams popup windows
+    POPUP_STYLE = 0x108
 
     # Icon and UI constants for the system tray application
     ICONS_DIR = "icons"
@@ -64,38 +58,16 @@ class TeamsPopupHandler:
         
         self.stop = False
 
-    # Callback method to find and process Teams popup windows
-    # This function is called for each window during enumeration
-    def find_teams_popup(self, hwnd, lParam):
-        try:
-            # Quick check without API calls to improve performance
-            if not hwnd:
-                return True
-                
-            # Check visibility as first filter
-            # This quickly eliminates hidden windows
-            if not self.IsWindowVisible(hwnd):
-                return True
-                
-            # Check style as second quick filter
-            # This identifies potential popup windows by their style
-            if self.GetWindowLongA(hwnd, Constants.GWL_EXSTYLE) != Constants.POPUP_STYLE:
-                return True
-                
-            # If we got here, it should be a Teams popup
-            # Store the window handle and stop enumeration
-            ctypes.cast(lParam, ctypes.POINTER(ctypes.c_void_p))[0] = hwnd
-            return False
-                
-        except Exception as e:
-            logging.exception(f"Error in find_teams_popup: {e}")
-            return True
-
     # Method to check if a window is a Teams popup
     # This method includes checks to immediately exclude certain cases
     def is_window_teams_popup(self, hWindow):
         try:
             # Quick base checks first for performance
+            if not hWindow:
+                return False
+                
+            # Check visibility as first filter
+            # This quickly eliminates hidden windows
             if not self.IsWindowVisible(hWindow):
                 return False
                 
@@ -108,15 +80,32 @@ class TeamsPopupHandler:
             # This helps identify if the window is minimized
             rect = ctypes.wintypes.RECT()
             self.GetWindowRect(hWindow, ctypes.byref(rect))
-            if rect.left <= -32000 or rect.top <= -32000:  # Minimized window check
+            if rect.left <= -32000 or rect.top <= -32000:
                 return False
                 
-            return True  # If all criteria are met
+            return True
                 
         except Exception as e:
             logging.exception(f"Exception in is_window_teams_popup: {e}")
             return False
 
+    # Callback method to find and process Teams popup windows
+    # This function is called for each window during enumeration
+    def find_teams_popup(self, hwnd, lParam):
+        try:
+            # Use the general check method to determine if this is a Teams popup
+            if self.is_window_teams_popup(hwnd):
+                # If we found a Teams popup, store the window handle and stop enumeration
+                ctypes.cast(lParam, ctypes.POINTER(ctypes.c_void_p))[0] = hwnd
+                return False
+                
+            # Continue enumeration if not a Teams popup
+            return True
+                
+        except Exception as e:
+            logging.exception(f"Error in find_teams_popup: {e}")
+            return True
+    
     # Loop function to continuously check for Teams popups and hide them
     # This function runs in a separate thread to avoid blocking the main UI
     def check_teams_popup_loop(self):
