@@ -60,26 +60,26 @@ class TeamsPopupHandler:
 
     # Method to check if a window is a Teams popup
     # This method includes checks to immediately exclude certain cases
-    def is_window_teams_popup(self, hWindow):
+    def is_window_teams_popup(self, hwnd):
         try:
             # Quick base checks first for performance
-            if not hWindow:
+            if not hwnd:
                 return False
                 
             # Check visibility as first filter
             # This quickly eliminates hidden windows
-            if not self.IsWindowVisible(hWindow):
+            if not self.IsWindowVisible(hwnd):
                 return False
                 
             # Direct style check before more expensive operations
-            exStyles = self.GetWindowLongA(hWindow, Constants.GWL_EXSTYLE)
+            exStyles = self.GetWindowLongA(hwnd, Constants.GWL_EXSTYLE)
             if exStyles != Constants.POPUP_STYLE:
                 return False
                 
             # Check window position only if needed
             # This helps identify if the window is minimized
             rect = ctypes.wintypes.RECT()
-            self.GetWindowRect(hWindow, ctypes.byref(rect))
+            self.GetWindowRect(hwnd, ctypes.byref(rect))
             if rect.left <= -32000 or rect.top <= -32000:
                 return False
                 
@@ -133,9 +133,9 @@ class TeamsPopupHandler:
 
     # Method to hide a given Teams popup window
     # Returns False if the hiding operation fails
-    def hide_teams_popup(self, hPopup):
-        if hPopup and not self.ShowWindow(hPopup, Constants.SW_HIDE):
-            logging.error(f"Failed to hide window with handle {hPopup}.")
+    def hide_teams_popup(self, hwnd):
+        if hwnd and not self.ShowWindow(hwnd, Constants.SW_HIDE):
+            logging.error(f"Failed to hide window with handle {hwnd}.")
 
 # Function to setup paths and the system tray icon
 # Returns the configured system tray icon object
